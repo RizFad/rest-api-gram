@@ -98,9 +98,18 @@ func server() {
 	photoHdl := handler.NewPhotoHandler(photoSvc)
 	photoRouter := router.NewPhotoRouter(photoGroup, photoHdl)
 
+	// comment
+	commentGroup := g.Group("/comments")
+
+	commentRepo := repository.NewCommentsQuery(gorm)
+	commentSvc := service.NewCommentsService(commentRepo)
+	commentHdl := handler.NewCommentHandler(commentSvc)
+	commentRouter := router.NewCommentsRouter(commentGroup, commentHdl)
+
 	// mount
 	userRouter.Mount()
 	photoRouter.Mount()
+	commentRouter.Mount()
 	// swagger
 	g.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
