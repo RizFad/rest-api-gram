@@ -12,49 +12,59 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type PhotosHandler interface {
+type PhotoHandler interface {
 	GetAllPhotos(ctx *gin.Context)
-	FindPhotoByID(ctx *gin.Context)
-	DeletePhoto(ctx *gin.Context)
 	UpdatePhoto(ctx *gin.Context)
+	DeletePhoto(ctx *gin.Context)
 	CreatePhoto(ctx *gin.Context)
 }
 
-type photosHandlerImpl struct {
+type photoHandlerImpl struct {
 	svc service.PhotosService
 }
 
-func NewPhotosHandler(svc service.PhotosService) PhotosHandler {
-	return &photosHandlerImpl{
+func NewPhotoHandler(svc service.PhotosService) PhotoHandler {
+	return &photoHandlerImpl{
 		svc: svc,
 	}
 }
 
-func (u *userHandlerImpl) UpdateUsersById(ctx *gin.Context) {
-	// Get user ID from path parameter
-	idStr := ctx.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+func (p *photoHandlerImpl) UpdatePhoto(ctx *gin.Context) {
+	var data model.UpdatePhoto
+
+	photoID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid user ID"})
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "ID must be a number"})
 		return
 	}
 
-	// Get updated user details from request body
-	var updatedUser model.User
-	if err := ctx.BindJSON(&updatedUser); err != nil {
+	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid request body"})
 		return
 	}
 
-	// Call service to update user
-	updatedUser, err = u.svc.UpdateUserByID(ctx, id, updatedUser)
+	// Get user from context
+	user, ok := ctx.Get(middleware.CLAIM_USER_ID)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "user information not found in context"})
+		return
+	}
+
+	userId, ok := user.(float64)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid user ID in context"})
+		return
+	}
+
+	// Call service to update photo
+	updatedPhoto, err := p.svc.UpdatePhoto(ctx, data, photoID, int(userId))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	// Respond with updated user details
-	ctx.JSON(http.StatusOK, updatedUser)
+	// Respond with updated photo details
+	ctx.JSON(http.StatusOK, updatedPhoto)
 }
 
 // ShowUsers godoc
@@ -69,13 +79,13 @@ func (u *userHandlerImpl) UpdateUsersById(ctx *gin.Context) {
 //	@Failure		404	{object}	pkg.ErrorResponse
 //	@Failure		500	{object}	pkg.ErrorResponse
 //	@Router			/users [get]
-func (u *userHandlerImpl) GetUsers(ctx *gin.Context) {
-	users, err := u.svc.GetUsers(ctx)
+func (p *photoHandlerImpl) GetAllPhotos(ctx *gin.Context) {
+	photos, err := p.svc.GetAllPhotos(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, users)
+	ctx.JSON(http.StatusOK, photos)
 }
 
 // ShowUsersById godoc
@@ -91,86 +101,42 @@ func (u *userHandlerImpl) GetUsers(ctx *gin.Context) {
 //	@Failure		404	{object}	pkg.ErrorResponse
 //	@Failure		500	{object}	pkg.ErrorResponse
 //	@Router			/users/{id} [get]
-func (u *userHandlerImpl) GetUsersById(ctx *gin.Context) {
-	// get id user
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if id == 0 || err != nil {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid required param"})
-		return
-	}
-	user, err := u.svc.GetUsersById(ctx, uint64(id))
+func (p *photoHandlerImpl) CreatePhoto(ctx *gin.Context) {
+	photoCreate := model.CreatePhoto{}
+
+	err := ctx.ShouldBindJSON(&photoCreate)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
-		return
-	}
-	if user.ID == 0 {
-		ctx.JSON(http.StatusNotFound, pkg.ErrorResponse{Message: "user not found"})
-		return
-	}
-	ctx.JSON(http.StatusOK, user)
-}
-
-func (u *userHandlerImpl) UserSignUp(ctx *gin.Context) {
-	// binding sign-up body
-	userSignUp := model.UserSignUp{}
-	if err := ctx.Bind(&userSignUp); err != nil {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	if err := userSignUp.Validate(); err != nil {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	user, err := u.svc.SignUp(ctx, userSignUp)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	token, err := u.svc.GenerateUserAccessToken(ctx, user)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
-	}
-
-	ctx.JSON(http.StatusOK, map[string]any{
-		"token": token,
-	})
-}
-
-func (u *userHandlerImpl) UserSignIn(ctx *gin.Context) {
-	// Binding request body
-	var userSignIn model.UserSignIn
-	if err := ctx.BindJSON(&userSignIn); err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid request body"})
 		return
 	}
 
-	// Get user by username from service
-	user, err := u.svc.GetUsersByUsername(ctx, userSignIn.Email)
+	errs := photoCreate.PhotoValidate()
+	if errs != nil {
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid request body"})
+		return
+	}
+
+	// Get user info from context
+	user, ok := ctx.Get(middleware.CLAIM_USER_ID)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "user information not found in context"})
+		return
+	}
+
+	userId, ok := user.(float64)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid user ID in context"})
+		return
+	}
+
+	// Call service to create photo
+	photo, err := p.svc.CreatePhoto(ctx, photoCreate, int(userId))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	// Validate request body
-	if err := userSignIn.Authenticate(user.Password); err != nil {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	// Generate access token
-	token, err := u.svc.GenerateUserAccessToken(ctx, user)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	// Respond with access token
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"token": token,
-	})
+	ctx.JSON(http.StatusOK, photo)
 }
 
 // DeleteUsersById godoc
@@ -187,38 +153,39 @@ func (u *userHandlerImpl) UserSignIn(ctx *gin.Context) {
 //		@Failure		404	{object}	pkg.ErrorResponse
 //		@Failure		500	{object}	pkg.ErrorResponse
 //		@Router			/users/{id} [delete]
-func (u *userHandlerImpl) DeleteUsersById(ctx *gin.Context) {
-	// get id user
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if id == 0 || err != nil {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid required param"})
+func (p *photoHandlerImpl) DeletePhoto(ctx *gin.Context) {
+	// Get photo ID
+	photoID, err := strconv.Atoi(ctx.Param("id"))
+	if photoID == 0 || err != nil {
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid photo ID"})
 		return
 	}
 
-	// check user id session from context
-	userId, ok := ctx.Get(middleware.CLAIM_USER_ID)
+	// Get user info from context
+	user, ok := ctx.Get(middleware.CLAIM_USER_ID)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "invalid user session"})
-		return
-	}
-	userIdInt, ok := userId.(float64)
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid user id session"})
-		return
-	}
-	if id != int(userIdInt) {
-		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "invalid user request"})
+		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "user information not found in context"})
 		return
 	}
 
-	user, err := u.svc.DeleteUsersById(ctx, uint64(id))
+	userId, ok := user.(float64)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid user ID in context"})
+		return
+	}
+
+	// Check if the photo belongs to the user
+	if photoID != int(userId) {
+		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "invalid request: photo does not belong to the user"})
+		return
+	}
+
+	// Call service to delete photo
+	err = p.svc.DeletePhoto(ctx, photoID, int(userId))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return
 	}
-	if user.ID == 0 {
-		ctx.JSON(http.StatusNotFound, pkg.ErrorResponse{Message: "user not found"})
-		return
-	}
+
 	ctx.JSON(http.StatusOK, user)
 }

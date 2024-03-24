@@ -16,31 +16,29 @@ type PhotosQuery interface {
 	CreatePhoto(ctx context.Context, photo *model.Photo) (*model.Photo, error)
 }
 
-// type PhotoCommand interface {
-// 	CreatePhoto(ctx context.Context, photo *model.Photo) (*model.Photo, error)
-// }
+type PhotoCommand interface {
+	CreatePhoto(ctx context.Context, photo *model.Photo) (*model.Photo, error)
+}
 
 type photoQueryImpl struct {
 	db infrastructure.GormPostgres
 }
 
-func NewPhotoQuery(db infrastructure.GormPostgres) UserQuery {
-	return &userQueryImpl{db: db}
+func NewPhotoQuery(db infrastructure.GormPostgres) PhotosQuery {
+	return &photoQueryImpl{db: db}
 }
 
 func (p *photoQueryImpl) CreatePhoto(ctx context.Context, photo *model.Photo) (*model.Photo, error) {
-	db := p.db.GetConnection()
-	if err := db.
-		WithContext(ctx).
-		Table("photos").
-		Save(&photo).Error; err != nil {
-		return &model.Photo{}, err
+	err := p.db.GetConnection().Create(photo).Error
+	if err != nil {
+		return nil, err
 	}
-	return photo, nil
+
+	return photo, err
 }
 
-func (p *photoQueryImpl) GetAllPhotos(ctx context.Context) ([]*model.Photo, error) {
-	var photos []*model.Photo
+func (p *photoQueryImpl) GetAllPhotos(ctx context.Context) ([]model.Photo, error) {
+	var photos []model.Photo
 
 	db := p.db.GetConnection()
 

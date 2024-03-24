@@ -90,8 +90,17 @@ func server() {
 	userHdl := handler.NewUserHandler(userSvc)
 	userRouter := router.NewUserRouter(usersGroup, userHdl)
 
+	// photo
+	photoGroup := g.Group("/photos")
+
+	photoRepo := repository.NewPhotoQuery(gorm)
+	photoSvc := service.NewPhotosService(photoRepo)
+	photoHdl := handler.NewPhotoHandler(photoSvc)
+	photoRouter := router.NewPhotoRouter(photoGroup, photoHdl)
+
 	// mount
 	userRouter.Mount()
+	photoRouter.Mount()
 	// swagger
 	g.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
