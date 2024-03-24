@@ -24,6 +24,6 @@ func (p *photoRouterImpl) Mount() {
 	p.v.Use(middleware.CheckAuthBearer)
 	p.v.POST("", p.handler.CreatePhoto)
 	p.v.GET("", p.handler.GetAllPhotos)
-	p.v.DELETE("/:id", p.handler.DeletePhoto)
-	p.v.PUT("/:id", p.handler.UpdatePhoto)
+	p.v.DELETE("/:photoId", p.handler.DeletePhoto)
+	p.v.PUT("/:photoId", p.handler.UpdatePhoto)
 }

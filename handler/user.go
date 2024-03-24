@@ -36,7 +36,7 @@ func NewUserHandler(svc service.UserService) UserHandler {
 
 func (u *userHandlerImpl) UpdateUsersById(ctx *gin.Context) {
 	// Get user ID from path parameter
-	idStr := ctx.Param("id")
+	idStr := ctx.Param("userId")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid user ID"})
@@ -97,7 +97,7 @@ func (u *userHandlerImpl) GetUsers(ctx *gin.Context) {
 //	@Router			/users/{id} [get]
 func (u *userHandlerImpl) GetUsersById(ctx *gin.Context) {
 	// get id user
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := strconv.Atoi(ctx.Param("userId"))
 	if id == 0 || err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid required param"})
 		return
@@ -193,7 +193,7 @@ func (u *userHandlerImpl) UserSignIn(ctx *gin.Context) {
 //		@Router			/users/{id} [delete]
 func (u *userHandlerImpl) DeleteUsersById(ctx *gin.Context) {
 	// get id user
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := strconv.Atoi(ctx.Param("userId"))
 	if id == 0 || err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid required param"})
 		return

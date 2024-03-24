@@ -24,6 +24,6 @@ func (c *commentsRouterImpl) Mount() {
 	c.v.Use(middleware.CheckAuthBearer)
 	c.v.POST("", c.handler.CreateComment)
 	c.v.GET("", c.handler.GetAllComment)
-	c.v.DELETE("/:id", c.handler.DeleteComment)
-	c.v.PUT("/:id", c.handler.UpdateComment)
+	c.v.DELETE("/:commentId", c.handler.DeleteComment)
+	c.v.PUT("/:commentId", c.handler.UpdateComment)
 }

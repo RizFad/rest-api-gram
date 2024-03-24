@@ -12,27 +12,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type PhotoHandler interface {
-	GetAllPhotos(ctx *gin.Context)
-	UpdatePhoto(ctx *gin.Context)
-	DeletePhoto(ctx *gin.Context)
-	CreatePhoto(ctx *gin.Context)
+type SocialMediasHandler interface {
+	CreateSocialMedia(ctx *gin.Context)
+	GetAllSocialMedia(ctx *gin.Context)
+	UpdateSocialMedia(ctx *gin.Context)
+	DeleteSocialMedia(ctx *gin.Context)
 }
 
-type photoHandlerImpl struct {
-	svc service.PhotosService
+type socialmediasHandlerImpl struct {
+	svc service.SocialMediasService
 }
 
-func NewPhotoHandler(svc service.PhotosService) PhotoHandler {
-	return &photoHandlerImpl{
+func NewSocialMediasHandler(svc service.SocialMediasService) SocialMediasHandler {
+	return &socialmediasHandlerImpl{
 		svc: svc,
 	}
 }
 
-func (p *photoHandlerImpl) UpdatePhoto(ctx *gin.Context) {
-	var data model.UpdatePhoto
+func (sm *socialmediasHandlerImpl) UpdateSocialMedia(ctx *gin.Context) {
+	var data model.UpdateSocialMedia
 
-	photoID, err := strconv.Atoi(ctx.Param("photoId"))
+	socialmediaID, err := strconv.Atoi(ctx.Param("socialMediaId"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "ID must be a number"})
 		return
@@ -56,15 +56,15 @@ func (p *photoHandlerImpl) UpdatePhoto(ctx *gin.Context) {
 		return
 	}
 
-	// Call service to update photo
-	updatedPhoto, err := p.svc.UpdatePhoto(ctx, data, photoID, int(userId))
+	// Call service to update socialmedia
+	updatedSocialMedias, err := sm.svc.UpdateSocialMedia(ctx, data, socialmediaID, int(userId))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	// Respond with updated photo details
-	ctx.JSON(http.StatusOK, updatedPhoto)
+	// Respond with updated socialmedia details
+	ctx.JSON(http.StatusOK, updatedSocialMedias)
 }
 
 // ShowUsers godoc
@@ -79,13 +79,13 @@ func (p *photoHandlerImpl) UpdatePhoto(ctx *gin.Context) {
 //	@Failure		404	{object}	pkg.ErrorResponse
 //	@Failure		500	{object}	pkg.ErrorResponse
 //	@Router			/users [get]
-func (p *photoHandlerImpl) GetAllPhotos(ctx *gin.Context) {
-	photos, err := p.svc.GetAllPhotos(ctx)
+func (sm *socialmediasHandlerImpl) GetAllSocialMedia(ctx *gin.Context) {
+	socialmedias, err := sm.svc.GetAllSocialMedia(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, photos)
+	ctx.JSON(http.StatusOK, socialmedias)
 }
 
 // ShowUsersById godoc
@@ -101,16 +101,16 @@ func (p *photoHandlerImpl) GetAllPhotos(ctx *gin.Context) {
 //	@Failure		404	{object}	pkg.ErrorResponse
 //	@Failure		500	{object}	pkg.ErrorResponse
 //	@Router			/users/{id} [get]
-func (p *photoHandlerImpl) CreatePhoto(ctx *gin.Context) {
-	photoCreate := model.CreatePhoto{}
+func (sm *socialmediasHandlerImpl) CreateSocialMedia(ctx *gin.Context) {
+	socialmediaCreate := model.SocialMediaCreate{}
 
-	err := ctx.ShouldBindJSON(&photoCreate)
+	err := ctx.ShouldBindJSON(&socialmediaCreate)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid request body"})
 		return
 	}
 
-	errs := photoCreate.PhotoValidate()
+	errs := socialmediaCreate.SocialMediaValidate()
 	if errs != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid request body"})
 		return
@@ -129,14 +129,14 @@ func (p *photoHandlerImpl) CreatePhoto(ctx *gin.Context) {
 		return
 	}
 
-	// Call service to create photo
-	photo, err := p.svc.CreatePhoto(ctx, photoCreate, int(userId))
+	// Call service to create socialmedia
+	socialmedia, err := sm.svc.CreateSocialMedia(ctx, socialmediaCreate, int(userId))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, photo)
+	ctx.JSON(http.StatusOK, socialmedia)
 }
 
 // DeleteUsersById godoc
@@ -153,11 +153,11 @@ func (p *photoHandlerImpl) CreatePhoto(ctx *gin.Context) {
 //		@Failure		404	{object}	pkg.ErrorResponse
 //		@Failure		500	{object}	pkg.ErrorResponse
 //		@Router			/users/{id} [delete]
-func (p *photoHandlerImpl) DeletePhoto(ctx *gin.Context) {
-	// Get photo ID
-	photoID, err := strconv.Atoi(ctx.Param("photoId"))
-	if photoID == 0 || err != nil {
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid photo ID"})
+func (sm *socialmediasHandlerImpl) DeleteSocialMedia(ctx *gin.Context) {
+	// Get social media ID
+	socialmediaID, err := strconv.Atoi(ctx.Param("socialMediaId"))
+	if socialmediaID == 0 || err != nil {
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid social media ID"})
 		return
 	}
 
@@ -175,13 +175,13 @@ func (p *photoHandlerImpl) DeletePhoto(ctx *gin.Context) {
 	}
 
 	// Check if the photo belongs to the user
-	if photoID != int(userId) {
-		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "invalid request: photo does not belong to the user"})
+	if socialmediaID != int(userId) {
+		ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{Message: "invalid request: social media does not belong to the user"})
 		return
 	}
 
 	// Call service to delete photo
-	err = p.svc.DeletePhoto(ctx, photoID, int(userId))
+	err = sm.svc.DeleteSocialMedia(ctx, socialmediaID, int(userId))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{Message: err.Error()})
 		return

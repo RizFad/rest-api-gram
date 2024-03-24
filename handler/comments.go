@@ -32,7 +32,7 @@ func NewCommentHandler(svc service.CommentsService) CommentsHandler {
 func (c *commentHandlerImpl) UpdateComment(ctx *gin.Context) {
 	var data model.UpdateComment
 
-	commentID, err := strconv.Atoi(ctx.Param("id"))
+	commentID, err := strconv.Atoi(ctx.Param("commentId"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "ID must be a number"})
 		return
@@ -155,7 +155,7 @@ func (c *commentHandlerImpl) CreateComment(ctx *gin.Context) {
 //		@Router			/users/{id} [delete]
 func (c *commentHandlerImpl) DeleteComment(ctx *gin.Context) {
 	// Get comment ID
-	commentID, err := strconv.Atoi(ctx.Param("id"))
+	commentID, err := strconv.Atoi(ctx.Param("commentId"))
 	if commentID == 0 || err != nil {
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{Message: "invalid photo ID"})
 		return

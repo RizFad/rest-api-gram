@@ -106,10 +106,19 @@ func server() {
 	commentHdl := handler.NewCommentHandler(commentSvc)
 	commentRouter := router.NewCommentsRouter(commentGroup, commentHdl)
 
+	// social medias
+	socialmediaGroup := g.Group("/socialmedias")
+
+	socialmediaRepo := repository.NewSocialMediasQuery(gorm)
+	socialmediaSvc := service.NewSocialMediasService(socialmediaRepo)
+	socialmediaHdl := handler.NewSocialMediasHandler(socialmediaSvc)
+	socialmediaRouter := router.NewSocialMediasRouter(socialmediaGroup, socialmediaHdl)
+
 	// mount
 	userRouter.Mount()
 	photoRouter.Mount()
 	commentRouter.Mount()
+	socialmediaRouter.Mount()
 	// swagger
 	g.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

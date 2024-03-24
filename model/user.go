@@ -13,7 +13,7 @@ type User struct {
 	Username  string         `json:"username"`
 	Email     string         `json:"email"`
 	Password  string         `json:"-"`
-	DoB       time.Time      `json:"dob" gorm:"column:dob"`
+	DoB       time.Time      `json:"age" gorm:"column:dob"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"column:deleted_at"`
@@ -39,7 +39,7 @@ type UserSignUp struct {
 	Username string    `json:"username" binding:"required"`
 	Password string    `json:"password" binding:"required"`
 	Email    string    `json:"email"`
-	DoB      time.Time `json:"dob"`
+	DoB      time.Time `json:"age"`
 }
 
 type UserSignIn struct {
@@ -52,8 +52,16 @@ func (u UserSignUp) Validate() error {
 		return errors.New("invalid username")
 	}
 	if len(u.Password) < 6 {
-		return errors.New("invalid password")
+		return errors.New("invalid password: length must be at least 6 characters")
 	}
+
+	today := time.Now()
+	dob := today.AddDate(0, 0, u.DoB.Compare(u.DoB))
+
+	if dob.Year() < 8 || dob.Year() > 150 {
+		return errors.New("invalid age: must be between 8 and 150 years old")
+	}
+
 	return nil
 }
 
