@@ -55,10 +55,16 @@ func (u UserSignUp) Validate() error {
 		return errors.New("invalid password: length must be at least 6 characters")
 	}
 
-	today := time.Now()
-	dob := today.AddDate(0, 0, u.DoB.Compare(u.DoB))
+	dobString := u.DoB.Format(time.RFC3339)
+	dob, err := time.Parse(time.RFC3339, dobString)
+	if err != nil {
+		return errors.New("invalid age format: must be in format (e.g., 2020-01-01T00:00:00Z)")
+	}
 
-	if dob.Year() < 8 || dob.Year() > 150 {
+	today := time.Now()
+	age := today.Year() - dob.Year()
+
+	if age < 8 || age > 150 {
 		return errors.New("invalid age: must be between 8 and 150 years old")
 	}
 
